@@ -396,6 +396,29 @@ class Helper {
     const ms = now.getMilliseconds().toString().padStart(3, "0");
     return `${prefix}-${date}-${time}${ms}-${random}`;
   }
+
+  static generateNumber(prefix, length = 6) {
+    const min = Math.pow(10, length - 1);
+    const max = Math.pow(10, length) - 1;
+
+    return `${prefix}-${Math.floor(min + Math.random() * (max - min + 1))}`;
+  }
+
+  static generatePrefix(source, length = 3, padChar = "X") {
+    if (!source || typeof source !== "string") {
+      throw new Error("generatePrefix requires a non-empty string");
+    }
+
+    const cleaned = source.replace(/[^A-Za-z]/g, "").toUpperCase();
+
+    if (!cleaned.length) {
+      throw new Error("generatePrefix: invalid source after sanitization");
+    }
+
+    return cleaned.length >= length
+      ? cleaned.substring(0, length)
+      : cleaned.padEnd(length, padChar);
+  }
 }
 
 export default Helper;

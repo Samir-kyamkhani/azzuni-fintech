@@ -84,6 +84,48 @@ model EmployeePermission {
   @@map("employee_permissions")
 }
 
+model Tenant {
+  id String @id @default(uuid())
+
+  tenantNumber    String @map("tenant_number") @db.VarChar(30)
+  tenantName      String @map("tenant_name")
+  tenantLegalName String @map("tenant_legal_name")
+
+  tenantType tenantType @map("tenant_type")
+  userType   userType   @map("user_type")
+
+  tenantEmail    String @map("tenant_email")
+  tenantWhatsapp String @map("tenant_whatsapp")
+
+  tenantMobileNumber String @map("tenant_mobile_number")
+
+  parentTenantId      String? @map("parent_tenant_id")
+  createdByUserId     String? @map("created_by_user_id")
+  createdByEmployeeId String? @map("created_by_employee_id")
+
+  tenantStatus String @map("tenant_status") // ACTIVE | INACTIVE | SUSPENDED
+
+  actionReason String?   @map("action_reason")
+  actionedAt   DateTime? @map("actioned_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  parent   Tenant?  @relation("TenantHierarchy", fields: [parentTenantId], references: [id])
+  children Tenant[] @relation("TenantHierarchy")
+
+  createdByUser User? @relation(fields: [createdByUserId], references: [id])
+
+  @@unique([tenantNumber])
+  @@unique([parentTenantId, tenantWhatsapp])
+  @@unique([parentTenantId, tenantMobileNumber])
+  @@unique([parentTenantId, tenantEmail])
+  @@index([parentTenantId])
+  @@index([tenantStatus])
+  @@map("tenants")
+}
+
 model User {
   id                            String               @id @default(uuid())
   username                      String               @db.Text
@@ -130,6 +172,7 @@ model User {
   wallets                       Wallet[]
   limits                        UserLimit?
   loginEvents                   LoginEvent[]
+  tenants                       Tenant[]
 
   @@index([parentId])
   @@index([hierarchyLevel])
@@ -664,6 +707,18 @@ model PiiConsent {
   @@unique([userId, piiType, scope])
   @@index([userKycId], map: "pii_consents_user_kyc_id_fkey")
   @@map("pii_consents")
+}
+
+enum tenantType {
+  PROPRIETORSHIP
+  PARTNERSHIP
+  PRIVATE_LIMITED
+}
+
+enum userType {
+  AZZUNIQUE
+  RESELLER
+  WHITELABEL
 }
 
 enum CommissionStartLevel {
