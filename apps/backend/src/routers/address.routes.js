@@ -48,21 +48,36 @@ addressRoutes.get("/state-list", StateController.index);
 addressRoutes.post(
   "/state-store",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   StateController.store
 );
 
 addressRoutes.put(
   "/state-update/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   StateController.update
 );
 
 addressRoutes.delete(
   "/state-delete/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   StateController.destroy
 );
 
@@ -75,21 +90,36 @@ addressRoutes.get("/city-list", CityController.index);
 addressRoutes.post(
   "/city-store",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   CityController.store
 );
 
 addressRoutes.put(
   "/city-update/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   CityController.update
 );
 
 addressRoutes.delete(
   "/city-delete/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   CityController.destroy
 );
 

@@ -11,7 +11,12 @@ const employeeRoutes = Router();
 employeeRoutes.get(
   "/",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   EmployeeController.getAllEmployeesByParentId
 );
 
@@ -19,7 +24,12 @@ employeeRoutes.get(
 employeeRoutes.get(
   "/:employeeId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   EmployeeController.getEmployeeById
 );
 
@@ -28,7 +38,12 @@ employeeRoutes.post(
   "/register",
   upload.single("profileImage"),
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.register),
   EmployeeController.register
 );
@@ -37,7 +52,12 @@ employeeRoutes.post(
 employeeRoutes.put(
   "/:employeeId/permissions",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.updatePermissions),
   EmployeeController.updatePermissions
 );
@@ -46,7 +66,12 @@ employeeRoutes.put(
 employeeRoutes.put(
   "/:employeeId/profile",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.updateProfile),
   EmployeeController.updateProfile
 );
@@ -55,7 +80,12 @@ employeeRoutes.put(
 employeeRoutes.put(
   "/:employeeId/profile-image",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   upload.single("profileImage"),
   validateRequest(EmployeeValidationSchemas.updateProfileImage),
   EmployeeController.updateProfileImage
@@ -65,7 +95,12 @@ employeeRoutes.put(
 employeeRoutes.get(
   "/:employeeId/permissions",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   EmployeeController.getPermissions
 );
 
@@ -73,7 +108,12 @@ employeeRoutes.get(
 employeeRoutes.patch(
   "/:employeeId/deactivate",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.deactivateEmployee),
   EmployeeController.deactivateEmployee
 );
@@ -82,7 +122,12 @@ employeeRoutes.patch(
 employeeRoutes.patch(
   "/:employeeId/reactivate",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.reactivateEmployee),
   EmployeeController.reactivateEmployee
 );
@@ -91,7 +136,12 @@ employeeRoutes.patch(
 employeeRoutes.delete(
   "/:employeeId/delete",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   validateRequest(EmployeeValidationSchemas.deleteEmployee),
   EmployeeController.deleteEmployee
 );

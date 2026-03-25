@@ -183,6 +183,8 @@ export const login = (credentials) => async (dispatch) => {
     dispatch(getCurrentUserProfile());
     return data;
   } catch (error) {
+    console.log(error);
+
     const errMsg =
       error?.response?.data?.message || error?.message || "Login failed";
     dispatch(setAuthentication(false));

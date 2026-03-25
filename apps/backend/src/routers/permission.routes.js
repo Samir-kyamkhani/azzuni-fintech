@@ -13,7 +13,7 @@ const permissionRoutes = Router();
 permissionRoutes.post(
   "/role-upsert",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
   validateRequest(PermissionValidationSchemas.createOrUpdateRolePermission),
   RolePermissionController.createOrUpdate
 );
@@ -21,14 +21,14 @@ permissionRoutes.post(
 permissionRoutes.get(
   "/role-permission/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
   RolePermissionController.getByRole
 );
 
 permissionRoutes.delete(
   "/role-permission/:roleId/:serviceId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
   validateRequest(PermissionValidationSchemas.deleteRolePermission),
   RolePermissionController.delete
 );
@@ -37,7 +37,12 @@ permissionRoutes.delete(
 permissionRoutes.post(
   "/user-upsert",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest(PermissionValidationSchemas.createOrUpdateUserPermission),
   UserPermissionController.createOrUpdate
 );
@@ -45,14 +50,19 @@ permissionRoutes.post(
 permissionRoutes.get(
   "/user-permission/:userId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   UserPermissionController.getByUser
 );
 
 permissionRoutes.delete(
   "/user-permission/:userId/:serviceId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
   validateRequest(PermissionValidationSchemas.deleteUserPermission),
   UserPermissionController.delete
 );

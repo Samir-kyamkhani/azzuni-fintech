@@ -5,12 +5,12 @@ import Helper from "../utils/helper.js";
 
 class RoleServices {
   static getAllRoles = async (options = {}) => {
-    const { currentUserRoleLevel, excludeAdmin = false } = options;
+    const { currentUserRoleLevel, excludeRoleName } = options;
 
     const where = {};
 
-    if (excludeAdmin) {
-      where.name = { not: "ADMIN" };
+    if (excludeRoleName) {
+      where.name = { not: excludeRoleName };
     }
 
     if (typeof currentUserRoleLevel === "number") {

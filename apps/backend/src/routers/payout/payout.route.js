@@ -21,7 +21,12 @@ router.post(
 router.post(
   "/status",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest({
     body: PayoutValidationSchemas.StatusSchema,
   }),
@@ -32,7 +37,12 @@ router.post(
 router.post(
   "/balance",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest({
     body: PayoutValidationSchemas.BalanceSchema,
   }),

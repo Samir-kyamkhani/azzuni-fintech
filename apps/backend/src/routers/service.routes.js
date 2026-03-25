@@ -9,7 +9,12 @@ const serviceRoutes = Router();
 serviceRoutes.post(
   "/create",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest(ServiceValidationSchemas.create), // ✅ FIXED
   ServiceProviderController.create
 );
@@ -17,35 +22,62 @@ serviceRoutes.post(
 serviceRoutes.post(
   "/lists",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "business", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "business",
+    "employee",
+  ]),
   ServiceProviderController.getAll
 );
 
 serviceRoutes.put(
   "/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   ServiceProviderController.update
 );
 
 serviceRoutes.delete(
   "/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   ServiceProviderController.delete
 );
 
 serviceRoutes.get(
   "/",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "business", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "business",
+    "employee",
+  ]),
   ServiceProviderController.getServices
 );
 
 serviceRoutes.post(
   "/slab",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   ServiceProviderController.slab
 );
 

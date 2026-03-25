@@ -14,7 +14,12 @@ const commissionRoutes = Router();
 commissionRoutes.get(
   "/setting",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
 
   CommissionSettingController.getByRoleOrUser
 );
@@ -31,7 +36,12 @@ commissionRoutes.get(
 commissionRoutes.post(
   "/setting",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
 
   validateRequest(
     CommissionValidationSchemas.createOrUpdateCommissionSettingSchema
@@ -56,7 +66,12 @@ commissionRoutes.get(
 commissionRoutes.post(
   "/slab",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["employee", "ADMIN"]),
+  AuthMiddleware.authorize([
+    "employee",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+  ]),
   CommissionSlabController.upsert
 );
 

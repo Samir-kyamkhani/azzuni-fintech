@@ -2,20 +2,12 @@ import jwt from "jsonwebtoken";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/AsyncHandler.js";
 import Prisma from "../db/db.js";
+import { BUSINESS_ROLES } from "../config/constant.js";
 
 export const ROLE_TYPES = {
   BUSINESS: "business",
   EMPLOYEE: "employee",
 };
-
-// Predefined business roles (jo system mein fixed hain)
-const PREDEFINED_BUSINESS_ROLES = [
-  "ADMIN",
-  "STATE HEAD",
-  "MASTER DISTRIBUTOR",
-  "DISTRIBUTOR",
-  "RETAILER",
-];
 
 class AuthMiddleware {
   static isAuthenticated = asyncHandler(async (req, res, next) => {
@@ -83,10 +75,7 @@ class AuthMiddleware {
       seen.add(item);
 
       // Validate if item is either a predefined business role or a valid role type
-      if (
-        !PREDEFINED_BUSINESS_ROLES.includes(item) &&
-        !validRoleTypes.includes(item)
-      ) {
+      if (!BUSINESS_ROLES.includes(item) && !validRoleTypes.includes(item)) {
         throw new Error(
           `Invalid authorization entry: ${item}. Must be either a predefined business role or valid role type.`
         );

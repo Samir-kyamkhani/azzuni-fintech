@@ -6,79 +6,54 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🚀 Starting minimal seed...");
 
-  // const statesData = [
-  //   {
-  //     stateName: "Maharashtra",
-  //     stateCode: "27",
-  //     cities: ["Mumbai", "Pune"],
-  //   },
-  // ];
-
-  // const createdStates = {};
-  // const createdCities = {};
-
-  // for (const stateData of statesData) {
-  //   const state = await prisma.state.upsert({
-  //     where: { stateCode: stateData.stateCode },
-  //     update: {},
-  //     create: {
-  //       stateName: stateData.stateName,
-  //       stateCode: stateData.stateCode,
-  //     },
-  //   });
-  //   createdStates[state.id] = state;
-  //   createdCities[state.id] = [];
-
-  //   for (const cityName of stateData.cities) {
-  //     const cityCode = cityName.toUpperCase().replace(/\s+/g, "_");
-  //     const city = await prisma.city.upsert({
-  //       where: { cityCode },
-  //       update: {},
-  //       create: {
-  //         cityName,
-  //         cityCode,
-  //       },
-  //     });
-  //     createdCities[state.id].push(city);
-  //   }
-  // }
-
   console.log("\n👥 Creating roles...");
 
   const roles = [
     {
-      name: "ADMIN",
+      name: "AZZUNIQUE",
       level: 0,
       type: "business",
-      description: "System Administrator",
+      description: "Platform Owner",
+    },
+    {
+      name: "RESELLER",
+      level: 1,
+      type: "business",
+      description: "Reseller",
+    },
+    {
+      name: "WHITE LABEL",
+      level: 2,
+      type: "business",
+      description: "White Label Partner",
     },
     {
       name: "STATE HEAD",
-      level: 1,
+      level: 3,
       type: "business",
       description: "State Head",
     },
     {
       name: "MASTER DISTRIBUTOR",
-      level: 2,
+      level: 4,
       type: "business",
       description: "Master Distributor",
     },
     {
       name: "DISTRIBUTOR",
-      level: 3,
+      level: 5,
       type: "business",
       description: "Distributor",
     },
     {
       name: "RETAILER",
-      level: 4,
+      level: 6,
       type: "business",
       description: "Retailer",
     },
     {
       name: "HR",
-      level: 5,
+      level: 7,
       type: "employee",
       description: "Human Resources",
     },
@@ -88,9 +63,9 @@ async function main() {
 
   for (const role of roles) {
     const created = await prisma.role.upsert({
-      where: { level: role.level },
+      where: { name: role.name }, // ✅ FIXED (was level before)
       update: {
-        name: role.name,
+        level: role.level,
         type: role.type,
         description: role.description,
       },
@@ -99,31 +74,32 @@ async function main() {
         level: role.level,
         type: role.type,
         description: role.description,
-        createdBy: null, // will be updated later for ADMIN
+        createdBy: null,
       },
     });
+
     createdRoles[role.level] = created;
     console.log(`✅ Role created: ${created.name} (${created.type})`);
   }
 
-  console.log("\n👑 Creating Admin user...");
+  console.log("\n👑 Creating AZZUNIQUE user...");
 
-  const adminPassword = CryptoService.encrypt("Admin@123");
-  const adminPin = CryptoService.encrypt("1234");
+  const password = CryptoService.encrypt("Admin@123");
+  const pin = CryptoService.encrypt("1234");
 
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@gmail.com" },
+  const azzuniqueUser = await prisma.user.upsert({
+    where: { email: "owner@gmail.com" },
     update: {},
     create: {
-      username: "admin",
-      firstName: "Admin",
-      lastName: "User",
+      username: "azzunique",
+      firstName: "Azzunique",
+      lastName: "Owner",
       profileImage: "",
-      email: "admin@gmail.com",
+      email: "owner@gmail.com",
       phoneNumber: "9999999991",
-      password: adminPassword,
-      transactionPin: adminPin,
-      roleId: createdRoles[0].id,
+      password: password,
+      transactionPin: pin,
+      roleId: createdRoles[0].id, // ✅ AZZUNIQUE
       hierarchyLevel: 0,
       hierarchyPath: "0",
       status: "ACTIVE",
@@ -131,17 +107,19 @@ async function main() {
     },
   });
 
-  console.log(`✅ Admin created: ${admin.username}`);
+  console.log(`✅ AZZUNIQUE user created: ${azzuniqueUser.username}`);
 
-  // Update the ADMIN role with createdBy reference
+  // ✅ Set createdBy for top role
   await prisma.role.update({
     where: { id: createdRoles[0].id },
     data: {
-      createdBy: admin.id,
+      createdBy: azzuniqueUser.id,
     },
   });
 
-  const businessUsers = [admin];
+  const businessUsers = [azzuniqueUser];
+
+  console.log("\n💳 Creating wallets...");
 
   for (const user of businessUsers) {
     // COMMISSION
@@ -183,6 +161,7 @@ async function main() {
         version: 1,
       },
     });
+
     // TDS
     await prisma.wallet.upsert({
       where: {
@@ -203,7 +182,7 @@ async function main() {
       },
     });
 
-    console.log(`💳 PRIMARY + COMMISSION wallet created for ${user.username}`);
+    console.log(`💳 Wallets created for ${user.username}`);
   }
 
   console.log("\n🎉 Seeding completed successfully!");

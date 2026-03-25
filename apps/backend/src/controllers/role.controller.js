@@ -6,21 +6,20 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 class RoleController {
   static getAllRoles = asyncHandler(async (req, res) => {
     const userRoleLevel = req.user?.roleLevel;
+    const userRoleName = req.user?.role;
 
     const options = {
       ...(typeof userRoleLevel === "number" && {
         currentUserRoleLevel: userRoleLevel,
       }),
-      excludeAdmin: true, // Exclude ADMIN role
+      excludeRoleName: userRoleName,
     };
 
     const roles = await RoleServices.getAllRoles(options);
 
     return res
       .status(200)
-      .json(
-        ApiResponse.success(roles, "All non-admin roles fetched successfully")
-      );
+      .json(ApiResponse.success(roles, "Roles fetched successfully"));
   });
 
   static getAllRolesByType = asyncHandler(async (req, res) => {

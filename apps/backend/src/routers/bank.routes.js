@@ -72,7 +72,12 @@ bankRoutes.delete(
 bankRoutes.put(
   "/bank-verify",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest(BankValidationSchemas.VerificationBankSchema),
   AddBankController.verify
 );

@@ -11,6 +11,7 @@ import {
 import AuditLogService from "./auditLog.service.js";
 import LoginLogService from "./loginLog.service.js";
 import { UserPermissionService } from "./permission.service.js";
+import { BUSINESS_ROLES } from "../config/constant.js";
 
 class AuthServices {
   static async login(payload, req, res) {
@@ -117,15 +118,7 @@ class AuthServices {
 
       // Also include permissions in user object for frontend
       user.userPermissions = permissions;
-    } else if (
-      [
-        "ADMIN",
-        "STATE HEAD",
-        "MASTER DISTRIBUTOR",
-        "DISTRIBUTOR",
-        "RETAILER",
-      ].includes(user.role.name)
-    ) {
+    } else if (BUSINESS_ROLES.includes(user.role.name)) {
       const permissions = await UserPermissionService.getUserPermissions(
         user.id
       );
@@ -260,8 +253,8 @@ class AuthServices {
 
       let finalPermissions = [];
 
-      // ---------------- ADMIN ----------------
-      if (user.role.name === "ADMIN") {
+      // ---------------- AZZUNIQUE ----------------
+      if (user.role.name === BUSINESS_ROLES[0]) {
         const services = await Prisma.service.findMany({
           where: { isActive: true },
           select: {
@@ -341,7 +334,7 @@ class AuthServices {
 
       const serialized = Helper.serializeUser(transformedUser);
 
-      const isAdmin = currentUser?.role?.name === "ADMIN";
+      const isAdmin = currentUser?.role?.name === BUSINESS_ROLES[0];
 
       let safeUser = { ...serialized };
 

@@ -21,7 +21,13 @@ fundRequestRoutes.post(
 fundRequestRoutes.patch(
   "/verify",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorizeRoleTypes(["ADMIN", "employee", "business"]),
+  AuthMiddleware.authorizeRoleTypes([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+    "business",
+  ]),
   validateRequest({ body: FundRequestValidationSchemas.VerifyFundRequest }),
   FundRequestController.verify
 );

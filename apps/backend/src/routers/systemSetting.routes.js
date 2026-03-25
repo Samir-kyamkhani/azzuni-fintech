@@ -11,21 +11,23 @@ const systemSettingRoutes = Router();
 systemSettingRoutes.get(
   "/show",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   SystemSettingController.show
 );
 
 // public
-systemSettingRoutes.get(
-  "/public",
-  SystemSettingController.index
-);
+systemSettingRoutes.get("/public", SystemSettingController.index);
 
 // Delete system setting (ADMIN only)
 systemSettingRoutes.delete(
   "/delete/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
   SystemSettingController.delete
 );
 
@@ -33,7 +35,12 @@ systemSettingRoutes.delete(
 systemSettingRoutes.post(
   "/upsert",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   upload.fields([
     { name: "companyLogo", maxCount: 1 },
     { name: "favIcon", maxCount: 1 },

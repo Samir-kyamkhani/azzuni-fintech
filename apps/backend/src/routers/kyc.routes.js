@@ -12,7 +12,9 @@ kycRoutes.post(
   "/list-kyc",
   AuthMiddleware.isAuthenticated,
   AuthMiddleware.authorize([
-    "ADMIN",
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -49,7 +51,12 @@ kycRoutes.post(
 kycRoutes.put(
   "/user-verify",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["ADMIN", "employee"]),
+  AuthMiddleware.authorize([
+    "AZZUNIQUE",
+    "RESELLER",
+    "WHITE LABEL",
+    "employee",
+  ]),
   validateRequest(KycValidationSchemas.VerificationKycSchema),
   UserKycController.verification
 );
