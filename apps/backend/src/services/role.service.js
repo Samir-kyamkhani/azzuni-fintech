@@ -2,6 +2,7 @@ import Prisma from "../db/db.js";
 import { ApiError } from "../utils/ApiError.js";
 import AuditLogService from "./auditLog.service.js";
 import Helper from "../utils/helper.js";
+import { ROLE_HIERARCHY } from "../config/constant.js";
 
 class RoleServices {
   static getAllRoles = async (options = {}) => {
@@ -13,7 +14,11 @@ class RoleServices {
       where.name = { not: excludeRoleName };
     }
 
-    if (typeof currentUserRoleLevel === "number") {
+    // only apply for employee roles
+    if (
+      options.type === "employee" &&
+      typeof currentUserRoleLevel === "number"
+    ) {
       where.level = { gt: currentUserRoleLevel };
     }
 
@@ -48,21 +53,46 @@ class RoleServices {
       );
     }
 
-    const where = {
+    let where = {
       type: type,
     };
 
-    where.NOT = {
-      name: "ADMIN",
-    };
+    if (type === "employee") {
+      if (typeof currentUserRoleLevel === "number") {
+        where.level = { gt: currentUserRoleLevel };
+      }
+    }
 
-    // Role level logic based on current user's role
-    if (currentUser?.role?.name === "ADMIN") {
-      delete where.level;
-    } else if (currentUser?.role?.type === "employee") {
-      delete where.level;
-    } else if (typeof currentUserRoleLevel === "number") {
-      where.level = { gt: currentUserRoleLevel };
+    if (type === "business") {
+      let currentRoleName = null;
+
+      if (currentUser?.roleType === "employee") {
+        currentRoleName = currentUser?.parentBusinessRole;
+      } else {
+        currentRoleName = Helper.getRoleName(currentUser);
+      }
+
+      const normalizeRole = (role) => role?.toUpperCase().trim();
+      const allowedRoles = ROLE_HIERARCHY[normalizeRole(currentRoleName)] || [];
+
+      if (!allowedRoles.length) {
+        return {
+          roles: [],
+          meta: {
+            total: 0,
+            type,
+            currentUserRoleName: currentRoleName,
+            message: "No roles available for this role",
+          },
+        };
+      }
+
+      where = {
+        type: "business",
+        name: {
+          in: allowedRoles,
+        },
+      };
     }
 
     try {
@@ -130,15 +160,20 @@ class RoleServices {
         roles: roleDTOs,
         meta: {
           total: roleDTOs.length,
-          type: type,
+          type,
+
           filteredByLevel:
-            typeof currentUserRoleLevel === "number" &&
-            currentUser?.role?.name !== "ADMIN" &&
-            currentUser?.role?.type !== "employee",
-          currentUserRoleName: currentUser?.role?.name,
-          currentUserRoleType: currentUser?.role?.type,
+            type === "employee" && typeof currentUserRoleLevel === "number",
+
+          currentUserRoleName:
+            currentUser?.roleType === "employee"
+              ? currentUser?.parentBusinessRole
+              : currentUser?.role?.name,
+
+          currentUserRoleType: currentUser?.roleType,
           currentUserRoleLevel: currentUserRoleLevel,
-          excludedAdminRole: true,
+
+          appliedLogic: type === "business" ? "ROLE_HIERARCHY" : "LEVEL_BASED",
         },
       };
     } catch (error) {
@@ -192,8 +227,10 @@ class RoleServices {
 
     // Auto-determine level for employee roles - start from level 5 since 0-4 are taken by business roles
     const maxLevelRole = await Prisma.role.findFirst({
+      where: { type: "employee" },
       orderBy: { level: "desc" },
     });
+
     const level = maxLevelRole ? maxLevelRole.level + 1 : 5;
 
     const role = await Prisma.role.create({

@@ -36,6 +36,13 @@ class AuthMiddleware {
             level: true,
           },
         },
+
+        tenants: {
+          select: {
+            userType: true, // 👈 AZZUNIQUE / RESELLER / WHITELABEL
+          },
+          take: 1, // usually ek hi hoga
+        },
       },
     });
 
@@ -50,6 +57,7 @@ class AuthMiddleware {
       roleType: userExists.role.type,
       roleLevel: userExists.role.level,
       roleDetails: userExists.role,
+      parentBusinessRole: userExists.tenants?.userType || null,
     };
 
     return next();

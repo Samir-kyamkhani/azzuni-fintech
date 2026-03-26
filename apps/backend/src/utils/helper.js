@@ -419,6 +419,15 @@ class Helper {
       ? cleaned.substring(0, length)
       : cleaned.padEnd(length, padChar);
   }
+
+  static getRoleName = (user) => {
+    if (user?.roleType === "employee") {
+      return user?.parentBusinessRole;
+    }
+
+    // handle both cases safely
+    return typeof user?.role === "string" ? user.role : user?.role?.name;
+  };
 }
 
 export default Helper;
