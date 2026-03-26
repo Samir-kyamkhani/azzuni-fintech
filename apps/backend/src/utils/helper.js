@@ -428,6 +428,9 @@ class Helper {
     // handle both cases safely
     return typeof user?.role === "string" ? user.role : user?.role?.name;
   };
+
+  static normalizeRole = (role) =>
+    role?.toUpperCase().replace(/\s+/g, "_").trim();
 }
 
 export default Helper;

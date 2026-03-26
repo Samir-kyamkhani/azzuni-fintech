@@ -9,6 +9,7 @@ import {
 import HeaderSection from "../ui/HeaderSection";
 import InputField from "../ui/InputField";
 import ButtonField from "../ui/ButtonField";
+import { DropdownField } from "../ui/DropdownField";
 
 export default function AddUser({
   isAdmin = false,
@@ -27,6 +28,15 @@ export default function AddUser({
     roleId: "",
     profileImage: null,
   });
+
+  const [step, setStep] = useState(1);
+
+  const [tenantData, setTenantData] = useState({
+    tenantName: "",
+    tenantLegalName: "",
+    tenantType: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -91,12 +101,13 @@ export default function AddUser({
   const displayText = getDisplayText();
 
   useEffect(() => {
-    // Fetch roles based on type
+    // Fetch roles based on type - only fetch if not in edit mode or if in add mode
     let roleType = "";
     if (type === "employee") roleType = "employee";
     if (type === "business") roleType = "business";
 
-    if (roleType) {
+    // Only fetch roles if we need them (not in edit mode or if we need roles for display)
+    if (roleType && (!editData || !profileEdit)) {
       dispatch(getAllRolesByType(roleType));
     }
 
@@ -107,14 +118,40 @@ export default function AddUser({
         lastName: editData.lastName || "",
         email: editData.email || "",
         phoneNumber: editData.phoneNumber || "",
-        roleId: editData.roleId || "",
-        profileImage: null,
+        roleId: "", // Clear roleId in edit mode
+        profileImage: null, // Clear profile image in edit mode
       });
+
       if (editData.profileImage) {
         setImagePreview(editData.profileImage);
       }
+
+      // 🔥 FIX: Populate tenant data if it exists in editData
+      if (editData.tenants && editData.tenants.length > 0) {
+        const tenant = editData.tenants[0];
+        setTenantData({
+          tenantName: tenant.tenantName || "",
+          tenantLegalName: tenant.tenantLegalName || "",
+          tenantType: tenant.tenantType || "",
+        });
+      }
     }
   }, [editData, dispatch, type]);
+
+  useEffect(() => {
+    // Only reset step and tenant data for new user creation, not for edit mode
+    if (!editData) {
+      setStep(1);
+      setTenantData({
+        tenantName: "",
+        tenantLegalName: "",
+        tenantType: "",
+      });
+    } else {
+      // In edit mode, always show step 2 (the main form)
+      setStep(2);
+    }
+  }, [editData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,16 +192,33 @@ export default function AddUser({
     if (!formData.phoneNumber)
       newErrors.phoneNumber = "Phone number is required";
 
-    // Only validate role if not in profileEdit mode
-    if (!profileEdit && !formData.roleId) newErrors.roleId = "Role is required";
+    // Only validate role if not in edit mode
+    if (!editData && !profileEdit && !formData.roleId)
+      newErrors.roleId = "Role is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ FIXED: Handle form submission based on type
+  // Handle form submission based on type
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔥 FIX: For edit mode, skip tenant step
+    if (
+      type === "business" &&
+      shouldShowTenantStep &&
+      step === 1 &&
+      !editData
+    ) {
+      if (!tenantData.tenantName) {
+        setErrors({ tenantName: "Tenant name is required" });
+        return;
+      }
+
+      setStep(2);
+      return;
+    }
 
     if (!validateForm()) {
       setMessage({
@@ -182,15 +236,23 @@ export default function AddUser({
       let res;
 
       if (editData) {
-        // Edit case
+        // 🔥 FIX: Include tenant data in edit mode for business users
         const submitData = {
           username: formData.username,
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
           phoneNumber: formData.phoneNumber,
-          roleId: formData.roleId,
+          // roleId is intentionally omitted
         };
+
+        // 🔥 Add tenant data for business users in edit mode
+        if (type === "business" && shouldShowTenantStep) {
+          submitData.tenantName = tenantData.tenantName;
+          submitData.tenantLegalName =
+            tenantData.tenantLegalName || tenantData.tenantName;
+          submitData.tenantType = tenantData.tenantType;
+        }
 
         // Remove undefined fields
         Object.keys(submitData).forEach((key) => {
@@ -203,12 +265,7 @@ export default function AddUser({
           }
         });
 
-        // If profileEdit is true, don't send roleId
-        if (profileEdit) {
-          delete submitData.roleId;
-        }
-
-        // ✅ FIXED: Use appropriate update function based on type
+        // Use appropriate update function based on type
         if (type === "employee") {
           res = await dispatch(updateEmployeeProfile(editData.id, submitData));
         } else {
@@ -227,7 +284,16 @@ export default function AddUser({
           }
         });
 
-        // ✅ FIXED: Use appropriate register function based on type
+        if (type === "business" && shouldShowTenantStep) {
+          form.append("tenantName", tenantData.tenantName);
+          form.append(
+            "tenantLegalName",
+            tenantData.tenantLegalName || tenantData.tenantName,
+          );
+          form.append("tenantType", tenantData.tenantType || "PROPRIETORSHIP");
+        }
+
+        // Use appropriate register function based on type
         if (type === "employee") {
           res = await dispatch(registerEmployee(form));
         } else {
@@ -247,8 +313,10 @@ export default function AddUser({
           text: displayText.success,
         });
 
-        onSuccess();
-        onClose();
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 1000);
       } else {
         // Handle errors
         const errorData = res?.error || res?.payload || res?.data || {};
@@ -295,8 +363,8 @@ export default function AddUser({
 
   // Conditionally determine field visibility/state
   const shouldDisableEmail = editData && !isAdmin;
-  const shouldHideRole = profileEdit;
-  const shouldHideProfileImage = profileEdit;
+  const shouldShowTenantStep = isAdmin;
+  const isEditMode = editData; // Check if we're in edit mode
 
   return (
     <div className="fixed inset-0 bg-opacity-50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
@@ -322,150 +390,273 @@ export default function AddUser({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Username - Always show in both modes */}
-              <InputField
-                label={"Username"}
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Username"
-                error={errors.username}
-              />
+          {/* 🔥 FIX: Show tenant step only for new user creation, not for edit mode */}
+          {type === "business" &&
+            shouldShowTenantStep &&
+            step === 1 &&
+            !editData && (
+              <div className="space-y-5 mb-6">
+                <h3 className="text-lg font-semibold">Tenant Details</h3>
 
-              {/* ✅ Email - Conditionally disabled in edit mode if not admin */}
-              <div>
                 <InputField
-                  label={"Email"}
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={shouldDisableEmail}
-                  className={`${
-                    shouldDisableEmail ? "bg-gray-100 cursor-not-allowed" : ""
-                  }`}
-                  placeholder="email@example.com"
-                  error={errors.email}
+                  label="Tenant Name"
+                  value={tenantData.tenantName}
+                  onChange={(e) =>
+                    setTenantData({ ...tenantData, tenantName: e.target.value })
+                  }
+                  error={errors.tenantName}
+                  required
                 />
-                {shouldDisableEmail && (
-                  <p className="text-gray-500 text-sm mt-1">
-                    Only admins can update email address
-                  </p>
-                )}
-              </div>
 
-              {/* First Name - Always show */}
-              <InputField
-                label={"First Name"}
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                error={errors.firstName}
-                placeholder="First name"
-              />
+                <InputField
+                  label="Tenant Legal Name"
+                  value={tenantData.tenantLegalName}
+                  onChange={(e) =>
+                    setTenantData({
+                      ...tenantData,
+                      tenantLegalName: e.target.value,
+                    })
+                  }
+                />
 
-              {/* Last Name - Always show */}
+                <DropdownField
+                  label="Tenant Type"
+                  name="tenantType"
+                  value={tenantData.tenantType}
+                  onChange={(e) =>
+                    setTenantData({
+                      ...tenantData,
+                      tenantType: e.target.value,
+                    })
+                  }
+                  options={[
+                    { id: "PROPRIETORSHIP", label: "Proprietorship" },
+                    { id: "PARTNERSHIP", label: "Partnership" },
+                    { id: "PRIVATE_LIMITED", label: "Private Limited" },
+                    { id: "PUBLIC_LIMITED", label: "Public Limited" },
+                    { id: "LLP", label: "Limited Liability Partnership" },
+                  ]}
+                  placeholder="Select Tenant Type"
+                  required
+                />
 
-              <InputField
-                label={"Last Name"}
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                error={errors.lastName}
-                placeholder="Last name"
-              />
-
-              {/* Phone Number - Always show */}
-              <InputField
-                label={"Phone Number"}
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setFormData({ ...formData, phoneNumber: value });
-                  if (errors.phoneNumber)
-                    setErrors({ ...errors, phoneNumber: "" });
-                }}
-                maxLength={10}
-                placeholder="10-digit number"
-                error={errors.phoneNumber}
-              />
-
-              {/* ✅ Role - Hidden in profileEdit mode */}
-              {!shouldHideRole && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Role *
-                  </label>
-                  <select
-                    name="roleId"
-                    value={formData.roleId}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none ${
-                      errors.roleId
-                        ? "border-red-400 focus:ring-red-300 bg-red-50"
-                        : "border-gray-300 focus:ring-blue-400"
-                    }`}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="
+                  flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition
+                  bg-linear-to-r from-cyan-500 via-blue-600 to-indigo-700 text-white hover:from-cyan-600 hover:via-blue-700 hover:to-indigo-900"
                   >
-                    <option value="">Select a role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name || role.roleName}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.roleId && (
-                    <p className="text-red-500 text-sm mt-1">{errors.roleId}</p>
-                  )}
+                    Next
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* ✅ Profile Image - Completely hidden in profileEdit mode */}
-              {!shouldHideProfileImage && (
+          {/* 🔥 FIX: Show tenant edit section for edit mode */}
+          {type === "business" && shouldShowTenantStep && isEditMode && (
+            <div className="space-y-5  rounded-lg">
+              <h3 className="text-lg font-semibold">Tenant Details</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField
+                  label="Tenant Name"
+                  value={tenantData.tenantName}
+                  onChange={(e) =>
+                    setTenantData({ ...tenantData, tenantName: e.target.value })
+                  }
+                  error={errors.tenantName}
+                  required
+                />
+
+                <InputField
+                  label="Tenant Legal Name"
+                  value={tenantData.tenantLegalName}
+                  onChange={(e) =>
+                    setTenantData({
+                      ...tenantData,
+                      tenantLegalName: e.target.value,
+                    })
+                  }
+                />
+
+                <DropdownField
+                  label="Tenant Type"
+                  name="tenantType"
+                  value={tenantData.tenantType}
+                  onChange={(e) =>
+                    setTenantData({
+                      ...tenantData,
+                      tenantType: e.target.value,
+                    })
+                  }
+                  options={[
+                    { id: "PROPRIETORSHIP", label: "Proprietorship" },
+                    { id: "PARTNERSHIP", label: "Partnership" },
+                    { id: "PRIVATE_LIMITED", label: "Private Limited" },
+                    { id: "PUBLIC_LIMITED", label: "Public Limited" },
+                    { id: "LLP", label: "Limited Liability Partnership" },
+                  ]}
+                  placeholder="Select Tenant Type"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {((!shouldShowTenantStep && !isEditMode) ||
+            step === 2 ||
+            (isEditMode && !shouldShowTenantStep) ||
+            (isEditMode && shouldShowTenantStep)) && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Username - Always show in both modes */}
+                <InputField
+                  label={"Username"}
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Username"
+                  error={errors.username}
+                />
+
+                {/* Email - Conditionally disabled in edit mode if not admin */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Profile Image
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="w-full"
-                      disabled={loading}
-                    />
-                    {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-16 h-16 object-cover rounded-full border border-gray-300"
-                      />
-                    )}
-                  </div>
-                  {errors.profileImage && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.profileImage}
+                  <InputField
+                    label={"Email"}
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled={shouldDisableEmail}
+                    className={`${
+                      shouldDisableEmail ? "bg-gray-100 cursor-not-allowed" : ""
+                    }`}
+                    placeholder="email@example.com"
+                    error={errors.email}
+                  />
+                  {shouldDisableEmail && (
+                    <p className="text-gray-500 text-sm mt-1">
+                      Only admins can update email address
                     </p>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Submit */}
-            <div className="pt-3 flex justify-end">
-              <ButtonField
-                name={loading ? displayText.loading : displayText.button}
-                type="submit"
-                isLoading={loading}
-              />
-            </div>
-          </form>
+                {/* First Name - Always show */}
+                <InputField
+                  label={"First Name"}
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  error={errors.firstName}
+                  placeholder="First name"
+                />
+
+                {/* Last Name - Always show */}
+                <InputField
+                  label={"Last Name"}
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  error={errors.lastName}
+                  placeholder="Last name"
+                />
+
+                {/* Phone Number - Always show */}
+                <InputField
+                  label={"Phone Number"}
+                  type="tel"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10);
+                    setFormData({ ...formData, phoneNumber: value });
+                    if (errors.phoneNumber)
+                      setErrors({ ...errors, phoneNumber: "" });
+                  }}
+                  maxLength={10}
+                  placeholder="10-digit number"
+                  error={errors.phoneNumber}
+                />
+
+                {/* Role - Completely removed in edit mode */}
+                {!isEditMode && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Role *
+                    </label>
+                    <select
+                      name="roleId"
+                      value={formData.roleId}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none ${
+                        errors.roleId
+                          ? "border-red-400 focus:ring-red-300 bg-red-50"
+                          : "border-gray-300 focus:ring-blue-400"
+                      }`}
+                    >
+                      <option value="">Select a role</option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name || role.roleName}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.roleId && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.roleId}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Profile Image - Completely removed in edit mode */}
+                {!isEditMode && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Profile Image
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="w-full"
+                        disabled={loading}
+                      />
+                      {imagePreview && (
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-16 h-16 object-cover rounded-full border border-gray-300"
+                        />
+                      )}
+                    </div>
+                    {errors.profileImage && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.profileImage}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Submit */}
+              <div className="pt-3 flex justify-end">
+                <ButtonField
+                  name={loading ? displayText.loading : displayText.button}
+                  type="submit"
+                  isLoading={loading}
+                />
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

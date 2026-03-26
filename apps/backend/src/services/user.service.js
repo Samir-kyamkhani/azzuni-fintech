@@ -1,3 +1,4 @@
+import { ROLE_HIERARCHY } from "../config/constant.js";
 import Prisma from "../db/db.js";
 import { ApiError } from "../utils/ApiError.js";
 import { CryptoService } from "../utils/cryptoService.js";
@@ -18,11 +19,15 @@ class UserServices {
       phoneNumber,
       roleId,
       parentId,
+      tenantName,
+      tenantType,
+      tenantLegalName,
     } = payload;
 
     let profileImageUrl = "";
 
     try {
+      // 🔥 VALIDATION FIRST (before any database operations)
       const existingUser = await Prisma.user.findFirst({
         where: {
           OR: [{ email }, { phoneNumber }, { username }],
@@ -38,10 +43,10 @@ class UserServices {
           metadata: {
             ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
             reason: "USER_ALREADY_EXISTS",
-            roleName: req.user.role,
-            email: email,
-            phoneNumber: phoneNumber,
-            username: username,
+            roleName: req.user?.role,
+            email,
+            phoneNumber,
+            username,
             registeredBy: parentId,
           },
         });
@@ -58,8 +63,8 @@ class UserServices {
           metadata: {
             ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
             reason: "INVALID_ROLE_ID",
-            roleName: req.user.role,
-            roleId: roleId,
+            roleName: req.user?.role,
+            roleId,
             registeredBy: parentId,
           },
         });
@@ -84,20 +89,27 @@ class UserServices {
         throw ApiError.badRequest("Only business type roles can be assigned");
       }
 
-      const generatedPassword = Helper.generatePassword();
-      const generatedTransactionPin = Helper.generateTransactionPin();
-
-      const hashedPassword = CryptoService.encrypt(generatedPassword);
-      const hashedPin = CryptoService.encrypt(generatedTransactionPin);
-
       let hierarchyLevel = 0;
       let hierarchyPath = "";
+      let parentWithRole;
+      let childRoleName = role.name;
 
       if (parentId) {
-        const parent = await Prisma.user.findUnique({
+        parentWithRole = await Prisma.user.findUnique({
           where: { id: parentId },
+          include: {
+            role: true,
+            tenants: {
+              select: {
+                id: true,
+                userType: true,
+              },
+              take: 1,
+            },
+          },
         });
-        if (!parent) {
+
+        if (!parentWithRole) {
           await AuditLogService.createAuditLog({
             userId: parentId,
             action: "BUSINESS_USER_REGISTRATION_FAILED",
@@ -106,19 +118,45 @@ class UserServices {
             metadata: {
               ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
               reason: "INVALID_PARENT_ID",
-              roleName: req.user.role,
-              parentId: parentId,
+              roleName: req.user?.role,
+              parentId,
               registeredBy: parentId,
             },
           });
           throw ApiError.badRequest("Invalid parentId");
         }
-        hierarchyLevel = parent.hierarchyLevel + 1;
-        hierarchyPath = parent.hierarchyPath
-          ? `${parent.hierarchyPath}/${parentId}`
+
+        // 🔥 parent ka actual business role
+        let parentRoleName =
+          parentWithRole.role.type === "employee"
+            ? parentWithRole.tenants?.[0]?.userType
+            : parentWithRole.role.name;
+
+        // 🔥 VALIDATION
+        const parentRoleKey = Helper.normalizeRole(parentRoleName);
+        const childRoleKey = Helper.normalizeRole(childRoleName);
+
+        if (!ROLE_HIERARCHY[parentRoleKey]) {
+          throw ApiError.forbidden(
+            `Invalid hierarchy: ${parentRoleName} cannot create roles`
+          );
+        }
+
+        const allowedRoles = ROLE_HIERARCHY[parentRoleKey];
+
+        if (!allowedRoles.includes(childRoleKey)) {
+          throw ApiError.forbidden(
+            `${parentRoleName} can only create: ${allowedRoles.join(", ")}`
+          );
+        }
+
+        hierarchyLevel = parentWithRole.hierarchyLevel + 1;
+        hierarchyPath = parentWithRole.hierarchyPath
+          ? `${parentWithRole.hierarchyPath}/${parentId}`
           : `${parentId}`;
       }
 
+      // 🔥 Upload profile image if provided
       if (profileImage) {
         try {
           profileImageUrl =
@@ -130,32 +168,154 @@ class UserServices {
 
       const formattedFirstName = this.formatName(firstName);
       const formattedLastName = this.formatName(lastName);
+      const generatedPassword = Helper.generatePassword();
+      const generatedTransactionPin = Helper.generateTransactionPin();
+      const hashedPassword = CryptoService.encrypt(generatedPassword);
+      const hashedPin = CryptoService.encrypt(generatedTransactionPin);
 
-      const user = await Prisma.user.create({
-        data: {
-          username,
-          firstName: formattedFirstName,
-          lastName: formattedLastName,
-          profileImage: profileImageUrl,
-          email,
-          phoneNumber,
-          password: hashedPassword,
-          transactionPin: hashedPin,
-          roleId,
-          parentId,
-          hierarchyLevel,
-          hierarchyPath,
-          status: "IN_ACTIVE",
-          deactivationReason:
-            "Kindly contact the administrator to have your account activated.",
-          isKycVerified: false,
-          refreshToken: null,
-          passwordResetToken: null,
-          passwordResetExpires: null,
-          emailVerificationToken: null,
-          emailVerifiedAt: null,
-          emailVerificationTokenExpires: null,
+      // 🔥 USE TRANSACTION FOR ATOMIC OPERATIONS
+      const result = await Prisma.$transaction(async (tx) => {
+        // Create user
+        const user = await tx.user.create({
+          data: {
+            username,
+            firstName: formattedFirstName,
+            lastName: formattedLastName,
+            profileImage: profileImageUrl,
+            email,
+            phoneNumber,
+            password: hashedPassword,
+            transactionPin: hashedPin,
+            roleId,
+            parentId,
+            hierarchyLevel,
+            hierarchyPath,
+            status: "IN_ACTIVE",
+            deactivationReason:
+              "Kindly contact the administrator to have your account activated.",
+            isKycVerified: false,
+            refreshToken: null,
+            passwordResetToken: null,
+            passwordResetExpires: null,
+            emailVerificationToken: null,
+            emailVerifiedAt: null,
+            emailVerificationTokenExpires: null,
+          },
+          include: {
+            role: {
+              select: { id: true, name: true, level: true, description: true },
+            },
+            parent: {
+              select: {
+                id: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phoneNumber: true,
+                profileImage: true,
+              },
+            },
+          },
+        });
+
+        // 🔥 Create wallets
+        const isTopWalletRole =
+          childRoleName === "RESELLER" || childRoleName === "WHITE LABEL";
+
+        const walletsToCreate = [
+          { walletType: "PRIMARY", userId: user.id },
+          { walletType: "COMMISSION", userId: user.id },
+        ];
+
+        if (isTopWalletRole) {
+          walletsToCreate.push(
+            { walletType: "GST", userId: user.id },
+            { walletType: "TDS", userId: user.id }
+          );
+        }
+
+        await tx.wallet.createMany({
+          data: walletsToCreate.map((w) => ({
+            ...w,
+            balance: BigInt(0),
+            holdBalance: BigInt(0),
+            currency: "INR",
+            isActive: true,
+            version: 1,
+          })),
+        });
+
+        // 🔥 Create tenant if needed
+        const isTenantRole =
+          childRoleName === "RESELLER" || childRoleName === "WHITE LABEL";
+
+        if (isTenantRole) {
+          if (!tenantName || !tenantType) {
+            throw ApiError.badRequest(
+              "tenantName and tenantType are required for tenant roles"
+            );
+          }
+
+          const tenantPrefix = Helper.generatePrefix("TNT");
+
+          await tx.tenant.create({
+            data: {
+              tenantNumber: Helper.generateNumber(tenantPrefix),
+              tenantName,
+              tenantLegalName: tenantLegalName || tenantName,
+              tenantType,
+              userType: Helper.normalizeRole(childRoleName),
+              tenantEmail: email,
+              tenantWhatsapp: phoneNumber,
+              tenantMobileNumber: phoneNumber,
+              parentTenantId: parentWithRole?.tenants?.[0]?.id || null,
+              createdByUserId: parentId,
+              tenantStatus: "ACTIVE",
+            },
+          });
+        }
+
+        return user;
+      });
+
+      // 🔥 Send email (outside transaction)
+      await sendCredentialsEmail(
+        result,
+        generatedPassword,
+        generatedTransactionPin,
+        "created",
+        "Your business account has been successfully created. Here are your login credentials:",
+        "business"
+      );
+
+      const accessToken = Helper.generateAccessToken({
+        id: result.id,
+        email: result.email,
+        role: result.role.name,
+        roleLevel: result.role.level,
+      });
+
+      await AuditLogService.createAuditLog({
+        userId: parentId,
+        action: "BUSINESS_USER_REGISTERED",
+        entityType: "USER",
+        entityId: result.id,
+        ipAddress: req ? Helper.getClientIP(req) : null,
+        metadata: {
+          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
+          businessUserName: `${formattedFirstName} ${formattedLastName}`,
+          businessUserEmail: result.email,
+          roleName: req.user?.role,
+          hierarchyLevel: result.hierarchyLevel,
+          hasProfileImage: !!profileImageUrl,
+          registeredBy: parentId,
         },
+      });
+
+      // 🔥 Fetch complete user data with relations
+      const completeUser = await Prisma.user.findUnique({
+        where: { id: result.id },
         include: {
           role: {
             select: { id: true, name: true, level: true, description: true },
@@ -196,63 +356,7 @@ class UserServices {
         },
       });
 
-      await Prisma.wallet.createMany({
-        data: [
-          {
-            userId: user.id,
-            walletType: "PRIMARY",
-            currency: "INR",
-            balance: 0,
-            holdBalance: 0,
-            isActive: true,
-            version: 1,
-          },
-          {
-            userId: user.id,
-            walletType: "COMMISSION",
-            currency: "INR",
-            balance: 0,
-            holdBalance: 0,
-            isActive: true,
-            version: 1,
-          },
-        ],
-      });
-      // Send business-specific credentials email
-      await sendCredentialsEmail(
-        user,
-        generatedPassword,
-        generatedTransactionPin,
-        "created",
-        "Your business account has been successfully created. Here are your login credentials:",
-        "business"
-      );
-
-      const accessToken = Helper.generateAccessToken({
-        id: user.id,
-        email: user.email,
-        role: user.role.name,
-        roleLevel: user.role.level,
-      });
-
-      await AuditLogService.createAuditLog({
-        userId: parentId,
-        action: "BUSINESS_USER_REGISTERED",
-        entityType: "USER",
-        entityId: user.id,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          businessUserName: `${formattedFirstName} ${formattedLastName}`,
-          businessUserEmail: user.email,
-          roleName: req.user.role,
-          hierarchyLevel: user.hierarchyLevel,
-          hasProfileImage: !!profileImageUrl,
-          registeredBy: parentId,
-        },
-      });
-
-      return { user, accessToken };
+      return { user: completeUser, accessToken };
     } catch (err) {
       console.error("Business user registration error", {
         email,
@@ -270,7 +374,7 @@ class UserServices {
         metadata: {
           ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
           reason: "UNKNOWN_ERROR",
-          roleName: req.user.role,
+          roleName: req.user?.role,
           error: err.message,
           registeredBy: parentId,
         },
@@ -281,7 +385,9 @@ class UserServices {
         err?.message
       );
     } finally {
-      Helper.deleteOldImage(profileImage);
+      if (profileImage) {
+        Helper.deleteOldImage(profileImage);
+      }
     }
   }
 
@@ -293,207 +399,191 @@ class UserServices {
     req = null,
     res = null
   ) {
-    const { username, phoneNumber, firstName, lastName, email, roleId } =
-      updateData;
+    const { username, phoneNumber, firstName, lastName, email } = updateData;
 
-    const currentUser = await Prisma.user.findUnique({
-      where: { id: currentUserId },
-      include: {
-        role: {
-          select: { name: true, level: true },
+    // 🔥 Fetch users with necessary relations
+    const [currentUser, userToUpdate] = await Promise.all([
+      Prisma.user.findUnique({
+        where: { id: currentUserId },
+        include: {
+          role: { select: { name: true, type: true } },
+          tenants: { select: { id: true, userType: true }, take: 1 },
         },
-      },
-    });
+      }),
+      Prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          role: { select: { name: true, type: true, level: true } },
+          tenants: true,
+        },
+      }),
+    ]);
 
     if (!currentUser) {
-      await AuditLogService.createAuditLog({
-        userId: currentUserId,
-        action: "BUSINESS_PROFILE_UPDATE_FAILED",
-        entityType: "USER",
-        entityId: userId,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          reason: "CURRENT_USER_NOT_FOUND",
-          roleName: req.user.role,
-          updatedBy: currentUserId,
-        },
-      });
       throw ApiError.unauthorized("Current user not found");
     }
 
-    const userToUpdate = await Prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        role: {
-          select: { level: true, name: true, type: true },
-        },
-      },
-    });
-
     if (!userToUpdate) {
-      await AuditLogService.createAuditLog({
-        userId: currentUserId,
-        action: "BUSINESS_PROFILE_UPDATE_FAILED",
-        entityType: "USER",
-        entityId: userId,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          reason: "USER_TO_UPDATE_NOT_FOUND",
-          roleName: req.user.role,
-          updatedBy: currentUserId,
-        },
-      });
-      throw ApiError.notFound("User to update not found");
+      throw ApiError.notFound("User not found");
     }
 
-    // Ensure we're updating a business user
     if (userToUpdate.role.type !== "business") {
-      await AuditLogService.createAuditLog({
-        userId: currentUserId,
-        action: "BUSINESS_PROFILE_UPDATE_FAILED",
-        entityType: "USER",
-        entityId: userId,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          reason: "NON_BUSINESS_USER",
-          userRoleType: userToUpdate.role.type,
-          roleName: req.user.role,
-          updatedBy: currentUserId,
-        },
-      });
-      throw ApiError.badRequest("Can only update business users");
+      throw ApiError.badRequest("Only business users can be updated");
     }
 
-    const isAdmin =
-      currentUser.role.name === "ADMIN" || currentUser.role.type === "employee";
-    const isUpdatingOwnProfile = userId === currentUserId;
+    const isSelf = currentUserId === userId;
 
+    // 🔥 Current role resolution
+    const currentRoleName =
+      currentUser.role.type === "employee"
+        ? currentUser.tenants?.[0]?.userType
+        : currentUser.role.name;
+
+    const currentRoleKey = Helper.normalizeRole(currentRoleName);
+    const targetRoleKey = Helper.normalizeRole(userToUpdate.role.name);
+
+    const allowedRoles = ROLE_HIERARCHY[currentRoleKey] || [];
+
+    // 🔥 Hierarchy check (only for updating others)
+    if (!isSelf && !allowedRoles.includes(targetRoleKey)) {
+      throw ApiError.forbidden("You cannot update this user");
+    }
+
+    // 🔥 Email change control
     const isEmailChanged = email && email !== userToUpdate.email;
+    const canChangeEmail = ["AZZUNIQUE", "RESELLER"].includes(currentRoleKey);
 
-    if (isEmailChanged && !isAdmin) {
-      await AuditLogService.createAuditLog({
-        userId: currentUserId,
-        action: "BUSINESS_PROFILE_UPDATE_FAILED",
-        entityType: "USER",
-        entityId: userId,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          reason: "UNAUTHORIZED_EMAIL_UPDATE",
-          roleName: req.user.role,
-          updatedBy: currentUserId,
-        },
-      });
-      throw ApiError.forbidden(
-        "Only administrators can update email addresses"
-      );
+    if (isEmailChanged && !canChangeEmail) {
+      throw ApiError.forbidden("Not allowed to change email");
     }
 
-    if (roleId && !isAdmin) {
-      await AuditLogService.createAuditLog({
-        userId: currentUserId,
-        action: "BUSINESS_PROFILE_UPDATE_FAILED",
-        entityType: "USER",
-        entityId: userId,
-        ipAddress: req ? Helper.getClientIP(req) : null,
-        metadata: {
-          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          reason: "UNAUTHORIZED_ROLE_UPDATE",
-          roleName: req.user.role,
-          updatedBy: currentUserId,
-        },
-      });
-      throw ApiError.forbidden("Only administrators can change user roles");
-    }
-
+    // 🔥 Unique check
     if (username || phoneNumber || email) {
-      const existingUser = await Prisma.user.findFirst({
+      const existing = await Prisma.user.findFirst({
         where: {
-          AND: [
-            { id: { not: userId } },
-            {
-              OR: [
-                ...(username ? [{ username }] : []),
-                ...(phoneNumber ? [{ phoneNumber }] : []),
-                ...(email ? [{ email }] : []),
-              ],
-            },
+          id: { not: userId },
+          OR: [
+            ...(username ? [{ username }] : []),
+            ...(phoneNumber ? [{ phoneNumber }] : []),
+            ...(email ? [{ email }] : []),
           ],
         },
       });
 
-      if (existingUser) {
-        let reason = "";
-        if (existingUser.username === username) reason = "USERNAME_EXISTS";
-        else if (existingUser.phoneNumber === phoneNumber)
-          reason = "PHONE_EXISTS";
-        else if (existingUser.email === email) reason = "EMAIL_EXISTS";
+      if (existing) {
+        if (existing.username === username)
+          throw ApiError.badRequest("Username already taken");
+        if (existing.phoneNumber === phoneNumber)
+          throw ApiError.badRequest("Phone already used");
+        if (existing.email === email)
+          throw ApiError.badRequest("Email already used");
+      }
+    }
 
-        await AuditLogService.createAuditLog({
-          userId: currentUserId,
-          action: "BUSINESS_PROFILE_UPDATE_FAILED",
-          entityType: "USER",
-          entityId: userId,
-          ipAddress: req ? Helper.getClientIP(req) : null,
-          metadata: {
-            ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-            reason: reason,
-            roleName: req.user.role,
-            updatedBy: currentUserId,
+    // 🔥 Format data
+    const formattedData = {};
+    if (username) formattedData.username = username.trim();
+    if (firstName) formattedData.firstName = this.formatName(firstName);
+    if (lastName) formattedData.lastName = this.formatName(lastName);
+    if (phoneNumber) formattedData.phoneNumber = phoneNumber;
+    if (email) formattedData.email = email.trim().toLowerCase();
+
+    // 🔥 Use transaction for atomic updates
+    const updatedUser = await Prisma.$transaction(async (tx) => {
+      // Update user
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: formattedData,
+        include: {
+          role: true,
+          wallets: true,
+        },
+      });
+
+      // 🔥 Tenant update
+      const isTenantRole =
+        targetRoleKey === "RESELLER" || targetRoleKey === "WHITE LABEL";
+
+      if (isTenantRole) {
+        if (!updateData.tenantName) {
+          throw ApiError.badRequest("tenantName is required for tenant roles");
+        }
+
+        if (!updateData.tenantType) {
+          throw ApiError.badRequest("tenantType is required for tenant roles");
+        }
+
+        const tenantId = userToUpdate.tenants?.[0]?.id;
+        if (!tenantId) {
+          throw ApiError.badRequest("Tenant not found for this user");
+        }
+
+        await tx.tenant.update({
+          where: { id: tenantId },
+          data: {
+            tenantName: updateData.tenantName,
+            tenantLegalName:
+              updateData.tenantLegalName || updateData.tenantName,
+            tenantType: updateData.tenantType,
           },
         });
-
-        if (existingUser.username === username)
-          throw ApiError.badRequest("Username already taken");
-        if (existingUser.phoneNumber === phoneNumber)
-          throw ApiError.badRequest("Phone number already registered");
-        if (existingUser.email === email)
-          throw ApiError.badRequest("Email already registered");
       }
-    }
 
-    const formattedData = {};
-    const updatedFields = [];
+      // 🔥 Wallet sync
+      const isTopWalletRole =
+        targetRoleKey === "RESELLER" || targetRoleKey === "WHITE_LABEL";
 
-    if (username) {
-      formattedData.username = username.trim();
-      updatedFields.push("username");
-    }
-    if (firstName) {
-      formattedData.firstName = this.formatName(firstName);
-      updatedFields.push("firstName");
-    }
-    if (lastName) {
-      formattedData.lastName = this.formatName(lastName);
-      updatedFields.push("lastName");
-    }
-    if (phoneNumber) {
-      formattedData.phoneNumber = phoneNumber;
-      updatedFields.push("phoneNumber");
-    }
-    if (email) {
-      formattedData.email = email.trim().toLowerCase();
-      updatedFields.push("email");
-    }
-
-    if (roleId && isAdmin) {
-      const roleRecord = await Prisma.role.findUnique({
-        where: { id: roleId },
+      const existingWallets = await tx.wallet.findMany({
+        where: { userId },
       });
-      if (!roleRecord) throw ApiError.badRequest("Invalid role");
-      if (roleRecord.type !== "business") {
-        throw ApiError.badRequest("Can only assign business roles");
+
+      const walletTypes = existingWallets.map((w) => w.walletType);
+
+      if (isTopWalletRole) {
+        const missingWallets = [];
+        if (!walletTypes.includes("GST")) missingWallets.push("GST");
+        if (!walletTypes.includes("TDS")) missingWallets.push("TDS");
+
+        if (missingWallets.length) {
+          await tx.wallet.createMany({
+            data: missingWallets.map((type) => ({
+              userId,
+              walletType: type,
+              balance: BigInt(0),
+              holdBalance: BigInt(0),
+              currency: "INR",
+              isActive: true,
+              version: 1,
+            })),
+          });
+        }
+      } else {
+        // 🔥 Remove if role downgraded
+        await tx.wallet.deleteMany({
+          where: {
+            userId,
+            walletType: { in: ["GST", "TDS"] },
+          },
+        });
       }
-      formattedData.roleId = roleRecord.id;
-      updatedFields.push("roleId");
+
+      return user;
+    });
+
+    // 🔥 Email side effect (outside transaction)
+    if (isEmailChanged) {
+      await this.regenerateCredentialsAndNotify(
+        userId,
+        email,
+        currentUserId,
+        req,
+        res
+      );
     }
 
-    const updatedUser = await Prisma.user.update({
+    // 🔥 Fetch complete user data with relations
+    const completeUser = await Prisma.user.findUnique({
       where: { id: userId },
-      data: formattedData,
       include: {
         role: {
           select: { id: true, name: true, level: true, description: true },
@@ -523,19 +613,19 @@ class UserServices {
             createdAt: true,
           },
         },
+        tenants: true,
+        bankAccounts: {
+          where: {
+            status: "VERIFIED",
+          },
+          orderBy: {
+            isPrimary: "desc",
+          },
+        },
       },
     });
 
-    if (isEmailChanged) {
-      await this.regenerateCredentialsAndNotify(
-        userId,
-        email,
-        currentUserId,
-        req,
-        res
-      );
-    }
-
+    // 🔥 Audit log
     await AuditLogService.createAuditLog({
       userId: currentUserId,
       action: "BUSINESS_PROFILE_UPDATED",
@@ -544,25 +634,47 @@ class UserServices {
       ipAddress: req ? Helper.getClientIP(req) : null,
       metadata: {
         ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-        updatedFields: updatedFields,
-        roleName: req.user.role,
-        emailChanged: isEmailChanged,
-        isAdmin: isAdmin,
-        isOwnProfile: isUpdatingOwnProfile,
         updatedBy: currentUserId,
+        updatedFields: Object.keys(formattedData),
+        role: currentRoleName,
+        isEmailChanged,
       },
     });
 
-    return updatedUser;
+    return completeUser;
   }
 
   // BUSINESS USER PROFILE IMAGE UPDATE
   static async updateProfileImage(
     userId,
-    profileImagePath,
+    profileImageFile,
     req = null,
     res = null
   ) {
+    // 🔥 Validate file
+    if (!profileImageFile) {
+      throw ApiError.badRequest("Profile image is required");
+    }
+
+    // Validate file type
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "image/webp",
+    ];
+    if (!allowedMimeTypes.includes(profileImageFile.mimetype)) {
+      throw ApiError.badRequest(
+        "Invalid file type. Only JPEG, PNG, and WEBP images are allowed"
+      );
+    }
+
+    // Validate file size (e.g., 5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (profileImageFile.size > maxSize) {
+      throw ApiError.badRequest("File size too large. Maximum size is 5MB");
+    }
+
     try {
       const user = await Prisma.user.findUnique({
         where: { id: userId },
@@ -582,7 +694,7 @@ class UserServices {
 
       if (!user) {
         await AuditLogService.createAuditLog({
-          userId: userId,
+          userId,
           action: "BUSINESS_PROFILE_IMAGE_UPDATE_FAILED",
           entityType: "USER",
           entityId: userId,
@@ -590,7 +702,7 @@ class UserServices {
           metadata: {
             ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
             reason: "USER_NOT_FOUND",
-            roleName: req.user.role,
+            roleName: req.user?.role,
             updatedBy: userId,
           },
         });
@@ -600,7 +712,7 @@ class UserServices {
       // Ensure it's a business user
       if (user.role.type !== "business") {
         await AuditLogService.createAuditLog({
-          userId: userId,
+          userId,
           action: "BUSINESS_PROFILE_IMAGE_UPDATE_FAILED",
           entityType: "USER",
           entityId: userId,
@@ -609,7 +721,7 @@ class UserServices {
             ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
             reason: "NON_BUSINESS_USER",
             userRoleType: user.role.type,
-            roleName: req.user.role,
+            roleName: req.user?.role,
             updatedBy: userId,
           },
         });
@@ -618,23 +730,22 @@ class UserServices {
         );
       }
 
-      let oldImageDeleted = false;
-      if (user.profileImage) {
-        try {
-          await S3Service.delete({ fileUrl: user.profileImage });
-          oldImageDeleted = true;
-        } catch (error) {
-          console.error("Failed to delete old profile image", {
-            userId,
-            profileImage: user.profileImage,
-            error,
-          });
+      // 🔥 Upload new image first (to avoid leaving user without image if upload fails)
+      let profileImageUrl;
+      try {
+        profileImageUrl = await S3Service.upload(profileImageFile, "profile");
+        if (!profileImageUrl) {
+          throw new Error("Upload returned empty URL");
         }
+      } catch (uploadErr) {
+        console.error("Failed to upload profile image", {
+          userId,
+          error: uploadErr,
+        });
+        throw ApiError.internal("Failed to upload profile image");
       }
 
-      const profileImageUrl =
-        (await S3Service.upload(profileImagePath, "profile")) ?? "";
-
+      // 🔥 Update user with new image URL
       const updatedUser = await Prisma.user.update({
         where: { id: userId },
         data: { profileImage: profileImageUrl },
@@ -670,24 +781,65 @@ class UserServices {
         },
       });
 
+      // 🔥 Delete old image after successful update (don't block on failure)
+      let oldImageDeleted = false;
+      if (user.profileImage) {
+        try {
+          await S3Service.delete({ fileUrl: user.profileImage });
+          oldImageDeleted = true;
+        } catch (error) {
+          console.error("Failed to delete old profile image", {
+            userId,
+            profileImage: user.profileImage,
+            error,
+          });
+          // Don't throw error, just log it
+        }
+      }
+
       await AuditLogService.createAuditLog({
-        userId: userId,
+        userId,
         action: "BUSINESS_PROFILE_IMAGE_UPDATED",
         entityType: "USER",
         entityId: userId,
         ipAddress: req ? Helper.getClientIP(req) : null,
         metadata: {
           ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
-          oldImageDeleted: oldImageDeleted,
+          oldImageDeleted,
           newImageUrl: profileImageUrl,
-          roleName: req.user.role,
+          roleName: req.user?.role,
           updatedBy: userId,
+          fileSize: profileImageFile.size,
+          fileType: profileImageFile.mimetype,
         },
       });
 
       return updatedUser;
-    } finally {
-      Helper.deleteOldImage(profileImagePath);
+    } catch (err) {
+      console.error("Profile image update error", {
+        userId,
+        error: err.message,
+        stack: err.stack,
+      });
+
+      if (err instanceof ApiError) throw err;
+
+      await AuditLogService.createAuditLog({
+        userId,
+        action: "BUSINESS_PROFILE_IMAGE_UPDATE_FAILED",
+        entityType: "USER",
+        entityId: userId,
+        ipAddress: req ? Helper.getClientIP(req) : null,
+        metadata: {
+          ...(req && res ? Helper.generateCommonMetadata(req, res) : {}),
+          reason: "UNKNOWN_ERROR",
+          roleName: req.user?.role,
+          error: err.message,
+          updatedBy: userId,
+        },
+      });
+
+      throw ApiError.internal("Failed to update profile image", err?.message);
     }
   }
 
@@ -795,6 +947,45 @@ class UserServices {
       throw ApiError.badRequest("User is not a business user");
     }
 
+    // 🔥 SELF ACCESS ALWAYS ALLOWED
+    if (currentUser?.id === userId) {
+      const serialized = Helper.serializeUser(user);
+
+      try {
+        if (serialized.password) {
+          serialized.password = CryptoService.decrypt(serialized.password);
+        }
+        if (serialized.transactionPin) {
+          serialized.transactionPin = CryptoService.decrypt(
+            serialized.transactionPin
+          );
+        }
+      } catch {}
+
+      return serialized;
+    }
+
+    // 🔥 current role resolve (SAFE)
+    let currentRoleName =
+      currentUser?.roleType === "employee"
+        ? currentUser?.parentBusinessRole
+        : currentUser?.role;
+
+    if (!currentRoleName) {
+      throw ApiError.forbidden("Invalid role context");
+    }
+
+    const currentRoleKey = Helper.normalizeRole(currentRoleName);
+    const targetRoleKey = Helper.normalizeRole(user.role.name);
+
+    // 🔥 hierarchy validation
+    const allowedRoles = ROLE_HIERARCHY[currentRoleKey] || [];
+
+    if (!allowedRoles.includes(targetRoleKey)) {
+      throw ApiError.forbidden("You are not allowed to view this user");
+    }
+
+    // 🔥 transform user (USE THIS — FIXED)
     const transformedUser = {
       ...user,
       kycInfo:
@@ -824,44 +1015,39 @@ class UserServices {
       bankAccounts: undefined,
     };
 
-    let safeUser;
+    const serialized = Helper.serializeUser(transformedUser);
 
-    const isCurrentUserAdmin = currentUser && currentUser.role === "ADMIN";
+    // 🔥 credential access
+    const allowedToSeeCredentials = [
+      "AZZUNIQUE",
+      "RESELLER",
+      "WHITELABEL",
+    ].includes(currentRoleKey);
 
-    if (isCurrentUserAdmin) {
-      const serialized = transformedUser;
-
-      if (serialized.password) {
-        try {
+    if (allowedToSeeCredentials) {
+      try {
+        if (serialized.password) {
           serialized.password = CryptoService.decrypt(serialized.password);
-        } catch {
-          serialized.password = "Error decrypting";
         }
-      }
-
-      if (serialized.transactionPin) {
-        try {
+        if (serialized.transactionPin) {
           serialized.transactionPin = CryptoService.decrypt(
             serialized.transactionPin
           );
-        } catch {
-          serialized.transactionPin = "Error decrypting";
         }
+      } catch {
+        serialized.password = "Error decrypting";
+        serialized.transactionPin = "Error decrypting";
       }
 
-      safeUser = serialized;
-    } else {
-      const serialized = transformedUser;
-      const { password, transactionPin, refreshToken, ...safeData } =
-        serialized;
-      safeUser = safeData;
+      return serialized;
     }
 
+    const { password, transactionPin, refreshToken, ...safeUser } = serialized;
     return safeUser;
   }
 
   // GET ALL BUSINESS USERS BY ROLE
-  static async getAllUsersByRole(roleId) {
+  static async getAllUsersByRole(roleId, currentUser = null) {
     if (!roleId) {
       throw ApiError.badRequest("roleId is required");
     }
@@ -869,16 +1055,36 @@ class UserServices {
     // Verify role is business type
     const role = await Prisma.role.findUnique({
       where: { id: roleId },
-      select: { type: true },
+      select: { type: true, name: true },
     });
 
     if (!role || role.type !== "business") {
       throw ApiError.badRequest("Invalid business role");
     }
 
+    // 🔥 current role resolve
+    let currentRoleName =
+      currentUser?.roleType === "employee"
+        ? currentUser?.parentBusinessRole
+        : currentUser?.role;
+
+    const currentRoleKey = Helper.normalizeRole(currentRoleName);
+
+    const allowedRoles = ROLE_HIERARCHY[currentRoleKey] || [];
+
+    const targetRoleKey = Helper.normalizeRole(role.name);
+
+    // 🔥 STRICT CHECK
+    if (!allowedRoles.includes(targetRoleKey)) {
+      throw ApiError.forbidden(
+        `${currentRoleName} cannot access ${role.name} users`
+      );
+    }
+
     const users = await Prisma.user.findMany({
       where: {
         roleId,
+        parentId: currentUser?.id,
         status: "ACTIVE",
       },
       include: {
@@ -920,18 +1126,55 @@ class UserServices {
       orderBy: { createdAt: "desc" },
     });
 
-    const safeUsers = users.map((user) => Helper.serializeUser(user));
+    const allowedToSeeCredentials = [
+      "AZZUNIQUE",
+      "RESELLER",
+      "WHITELABEL",
+    ].includes(currentRoleKey);
+
+    const safeUsers = users.map((user) => {
+      const serialized = Helper.serializeUser(user);
+
+      if (allowedToSeeCredentials) {
+        try {
+          if (serialized.password) {
+            serialized.password = CryptoService.decrypt(serialized.password);
+          }
+
+          if (serialized.transactionPin) {
+            serialized.transactionPin = CryptoService.decrypt(
+              serialized.transactionPin
+            );
+          }
+        } catch {
+          serialized.password = "Error decrypting";
+          serialized.transactionPin = "Error decrypting";
+        }
+
+        return serialized;
+      }
+
+      const { password, transactionPin, refreshToken, ...safeUser } =
+        serialized;
+      return safeUser;
+    });
 
     return safeUsers;
   }
 
-  // GET ALL BUSINESS USERS BY PARENT ID
+  // GET ALL BUSINESS USERS BY PARENT ID (FIXED WITH ROLE_HIERARCHY)
   static async getAllRoleTypeUsersByParentId(parentId, options = {}) {
     // Get parent user with role information
     const parent = await Prisma.user.findUnique({
       where: { id: parentId },
       include: {
         role: true,
+        tenants: {
+          select: {
+            userType: true,
+          },
+          take: 1,
+        },
       },
     });
 
@@ -950,99 +1193,67 @@ class UserServices {
     const skip = (page - 1) * limit;
     const isAll = status === "ALL";
 
-    // Get business type roles (exclude ADMIN)
-    const businessRoles = await Prisma.role.findMany({
-      where: {
-        type: "business",
-        name: {
-          not: "ADMIN", // Exclude ADMIN role
+    // 🔥 STEP 1: parent role resolve
+    let parentRoleName =
+      parent.role.type === "employee"
+        ? parent.tenants?.[0]?.userType
+        : parent.role.name;
+
+    const parentRoleKey = Helper.normalizeRole(parentRoleName);
+
+    // 🔥 STEP 2: get allowed roles from hierarchy
+    const allowedRoles = ROLE_HIERARCHY[parentRoleKey] || [];
+
+    if (!allowedRoles.length) {
+      return {
+        users: [],
+        total: 0,
+        meta: {
+          parentRole: parentRoleName,
+          message: "No child roles allowed",
         },
+      };
+    }
+
+    // 🔥 STEP 3: map allowed roles → roleIds
+    const allowedRoleRecords = await Prisma.role.findMany({
+      where: {
+        name: {
+          in: allowedRoles,
+        },
+        type: "business",
       },
       select: { id: true, name: true },
     });
 
-    const businessRoleIds = businessRoles.map((role) => role.id);
+    const allowedRoleIds = allowedRoleRecords.map((r) => r.id);
 
-    let targetParentId = parentId;
+    // 🔥 STEP 4: build query
+    let queryWhere = {
+      parentId: parentId,
+      roleId: {
+        in: allowedRoleIds,
+      },
+      ...(isAll ? {} : { status }),
+    };
 
-    // If parent user is employee, use admin's ID instead
-    if (parent.role?.type === "employee") {
-      const adminUser = await Prisma.user.findFirst({
-        where: {
-          role: {
-            name: "ADMIN",
-          },
-        },
-      });
-
-      if (!adminUser) {
-        throw new Error("Admin user not found");
-      }
-
-      targetParentId = adminUser.id;
-    }
-
-    let queryWhere = {};
-
-    // Build query based on user role
-    if (parent.role?.name === "ADMIN" || parent.role?.type === "employee") {
-      // For ADMIN and employee users, show all business users (no parent filter)
-      queryWhere = {
-        roleId: {
-          in: businessRoleIds,
-        },
-        ...(isAll ? {} : { status }),
-      };
-    } else {
-      // For other users, show only their children
-      queryWhere = {
-        parentId: targetParentId,
-        roleId: {
-          in: businessRoleIds,
-        },
-        ...(isAll ? {} : { status }),
-      };
-    }
-
+    // 🔍 SEARCH FILTER
     if (search && search.trim() !== "") {
       const searchTerm = search.toLowerCase();
 
-      const searchConditions = {
-        OR: [
-          {
-            username: {
-              contains: searchTerm,
-            },
-          },
-          {
-            firstName: {
-              contains: searchTerm,
-            },
-          },
-          {
-            lastName: {
-              contains: searchTerm,
-            },
-          },
-          {
-            email: {
-              contains: searchTerm,
-            },
-          },
-          {
-            phoneNumber: {
-              contains: searchTerm,
-            },
-          },
-        ],
-      };
-
       queryWhere = {
         ...queryWhere,
-        ...searchConditions,
+        OR: [
+          { username: { contains: searchTerm } },
+          { firstName: { contains: searchTerm } },
+          { lastName: { contains: searchTerm } },
+          { email: { contains: searchTerm } },
+          { phoneNumber: { contains: searchTerm } },
+        ],
       };
     }
 
+    // 🔥 STEP 5: fetch users
     const [users, total] = await Promise.all([
       Prisma.user.findMany({
         where: queryWhere,
@@ -1086,61 +1297,55 @@ class UserServices {
         skip,
         take: limit,
       }),
-      Prisma.user.count({
-        where: queryWhere,
-      }),
+      Prisma.user.count({ where: queryWhere }),
     ]);
 
-    // Additional safety filter to ensure only business users are returned
-    const filteredUsers = users.filter(
-      (user) => user.role.type === "business" && user.role.name !== "ADMIN"
-    );
+    // 🔥 SAFETY FILTER
+    const filteredUsers = users.filter((user) => user.role.type === "business");
 
-    let safeUsers;
+    const allowedToSeeCredentials = [
+      "AZZUNIQUE",
+      "RESELLER",
+      "WHITELABEL",
+    ].includes(Helper.normalizeRole(parentRoleName));
 
-    // Only ADMIN can see decrypted passwords/pins
-    if (parent.role.name === "ADMIN" || parent.role?.type === "employee") {
-      safeUsers = filteredUsers.map((user) => {
-        const serialized = Helper.serializeUser(user);
+    const safeUsers = filteredUsers.map((user) => {
+      const serialized = Helper.serializeUser(user);
 
-        if (serialized.password) {
-          try {
+      if (allowedToSeeCredentials) {
+        try {
+          if (serialized.password) {
             serialized.password = CryptoService.decrypt(serialized.password);
-          } catch {
-            serialized.password = "Error decrypting";
           }
-        }
 
-        if (serialized.transactionPin) {
-          try {
+          if (serialized.transactionPin) {
             serialized.transactionPin = CryptoService.decrypt(
               serialized.transactionPin
             );
-          } catch {
-            serialized.transactionPin = "Error decrypting";
           }
+        } catch {
+          serialized.password = "Error decrypting";
+          serialized.transactionPin = "Error decrypting";
         }
 
         return serialized;
-      });
-    } else {
-      // For employee and other users, remove sensitive data
-      safeUsers = filteredUsers.map((user) => {
-        const serialized = Helper.serializeUser(user);
-        const { password, transactionPin, refreshToken, ...safeUser } =
-          serialized;
-        return safeUser;
-      });
-    }
+      }
+
+      // 🔥 others → hide
+      const { password, transactionPin, refreshToken, ...safeUser } =
+        serialized;
+      return safeUser;
+    });
 
     return {
       users: safeUsers,
-      total: filteredUsers.length,
+      total,
       meta: {
-        parentRole: parent.role.name,
+        parentRole: parentRoleName,
         parentRoleType: parent.role.type,
-        isEmployeeViewingAdminData: parent.role?.type === "employee",
-        targetParentId: targetParentId,
+        allowedRoles,
+        currentPage: page,
+        limit,
       },
     };
   }

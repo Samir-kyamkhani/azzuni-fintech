@@ -8,13 +8,22 @@ class UserValidationSchemas {
         .min(3, "Username must be at least 3 characters")
         .max(30, "Username cannot exceed 30 characters")
         .transform((val) => val.trim()),
+
       firstName: z.string().min(1, "First name is required"),
       lastName: z.string().min(1, "Last name is required"),
+
       email: z.string().email("Invalid email address"),
+
       phoneNumber: z
         .string()
         .regex(/^\d{10}$/, "Phone number must be 10 digits"),
+
       roleId: z.string().uuid("Invalid role ID"),
+
+      // 🔥 tenant fields (optional here, validated below)
+      tenantName: z.string().optional(),
+      tenantLegalName: z.string().optional(),
+      tenantType: z.string().optional(),
     });
   }
 
@@ -37,7 +46,11 @@ class UserValidationSchemas {
         .regex(/^\d{10}$/, "Phone number must be 10 digits")
         .optional(),
       email: z.string().email("Invalid email address").optional(),
-      roleId: z.string().uuid("Invalid role ID").optional(),
+
+      // 🔥 tenant fields (optional here, validated below)
+      tenantName: z.string().optional(),
+      tenantLegalName: z.string().optional(),
+      tenantType: z.string().optional(),
     });
   }
 

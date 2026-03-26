@@ -95,7 +95,7 @@ const UsersTable = () => {
 
   //  Check if current user is ADMIN
   const isAdminUser =
-    currentUserRole?.name === "ADMIN" || currentUserRole.type === "employee";
+    currentUserRole?.name === "AZZUNIQUE" || "RESELLER" || "WHITELABEL" || currentUserRole.type === "employee";
 
   //  FIXED: Correct loadUsers function
   const loadUsers = useCallback(
