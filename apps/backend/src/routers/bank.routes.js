@@ -75,7 +75,7 @@ bankRoutes.put(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(BankValidationSchemas.VerificationBankSchema),

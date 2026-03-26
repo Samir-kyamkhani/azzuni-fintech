@@ -24,7 +24,7 @@ router.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest({
@@ -40,7 +40,7 @@ router.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest({

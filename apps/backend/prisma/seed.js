@@ -22,10 +22,10 @@ async function main() {
       description: "Reseller",
     },
     {
-      name: "WHITE LABEL",
+      name: "WHITELABEL",
       level: 2,
       type: "business",
-      description: "White Label Partner",
+      description: "WHITELABEL Partner",
     },
     {
       name: "STATE HEAD",

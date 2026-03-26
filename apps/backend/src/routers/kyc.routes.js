@@ -14,7 +14,7 @@ kycRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -54,7 +54,7 @@ kycRoutes.put(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(KycValidationSchemas.VerificationKycSchema),

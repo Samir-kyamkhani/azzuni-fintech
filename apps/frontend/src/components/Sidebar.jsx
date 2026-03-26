@@ -64,7 +64,7 @@ const Sidebar = () => {
           staticRoles: [
             "AZZUNIQUE",
             "RESELLER",
-            "WHITE LABEL",
+            "WHITELABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -101,7 +101,7 @@ const Sidebar = () => {
           staticRoles: [
             "AZZUNIQUE",
             "RESELLER",
-            "WHITE LABEL",
+            "WHITELABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -136,7 +136,7 @@ const Sidebar = () => {
           staticRoles: [
             "AZZUNIQUE",
             "RESELLER",
-            "WHITE LABEL",
+            "WHITELABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -148,7 +148,7 @@ const Sidebar = () => {
           icon: Users,
           path: "/employee-management",
           employeePermission: PERMISSIONS.EMPLOYEE_MANAGEMENT,
-          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITE LABEL"],
+          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITELABEL"],
         },
         {
           id: "ledger",
@@ -156,7 +156,7 @@ const Sidebar = () => {
           icon: BarChart3,
           path: "/ledger",
           employeePermission: PERMISSIONS.LEDGER,
-          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITE LABEL"],
+          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITELABEL"],
         },
         {
           id: "logs",
@@ -274,7 +274,7 @@ const Sidebar = () => {
   const getWallet = (type) => wallets.find((w) => w.walletType === type);
 
   // role based wallets
-  const isAdmin = role === "AZZUNIQUE" || "RESELLER" || "WHITE LABEL";
+  const isAdmin = role === "AZZUNIQUE" || "RESELLER" || "WHITELABEL";
   const isAzzunique = role === "AZZUNIQUE";
 
   const primaryWallet = getWallet("PRIMARY");

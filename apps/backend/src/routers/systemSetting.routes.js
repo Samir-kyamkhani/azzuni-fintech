@@ -14,7 +14,7 @@ systemSettingRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   SystemSettingController.show
@@ -27,7 +27,7 @@ systemSettingRoutes.get("/public", SystemSettingController.index);
 systemSettingRoutes.delete(
   "/delete/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITELABEL"]),
   SystemSettingController.delete
 );
 
@@ -38,7 +38,7 @@ systemSettingRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   upload.fields([

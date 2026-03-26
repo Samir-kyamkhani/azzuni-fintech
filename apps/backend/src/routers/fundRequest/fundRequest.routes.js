@@ -24,7 +24,7 @@ fundRequestRoutes.patch(
   AuthMiddleware.authorizeRoleTypes([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
     "business",
   ]),

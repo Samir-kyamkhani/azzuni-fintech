@@ -22,7 +22,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -38,7 +38,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -54,7 +54,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -70,7 +70,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -86,7 +86,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -103,7 +103,7 @@ userRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -120,7 +120,7 @@ userRoutes.put(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -137,7 +137,7 @@ userRoutes.put(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -155,7 +155,7 @@ userRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -171,7 +171,7 @@ userRoutes.patch(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(UserValidationSchemas.deactivateUser),
@@ -185,7 +185,7 @@ userRoutes.patch(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(UserValidationSchemas.reactivateUser),
@@ -199,7 +199,7 @@ userRoutes.delete(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(UserValidationSchemas.deleteUser),

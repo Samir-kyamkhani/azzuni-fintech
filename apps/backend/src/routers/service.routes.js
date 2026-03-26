@@ -12,7 +12,7 @@ serviceRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(ServiceValidationSchemas.create), // ✅ FIXED
@@ -25,7 +25,7 @@ serviceRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "business",
     "employee",
   ]),
@@ -38,7 +38,7 @@ serviceRoutes.put(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   ServiceProviderController.update
@@ -50,7 +50,7 @@ serviceRoutes.delete(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   ServiceProviderController.delete
@@ -62,7 +62,7 @@ serviceRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "business",
     "employee",
   ]),
@@ -75,7 +75,7 @@ serviceRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   ServiceProviderController.slab

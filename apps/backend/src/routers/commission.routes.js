@@ -18,7 +18,7 @@ commissionRoutes.get(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
 
   CommissionSettingController.getByRoleOrUser
@@ -40,7 +40,7 @@ commissionRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
 
   validateRequest(
@@ -70,7 +70,7 @@ commissionRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   CommissionSlabController.upsert
 );

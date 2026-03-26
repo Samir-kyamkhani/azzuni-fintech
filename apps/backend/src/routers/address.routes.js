@@ -52,7 +52,7 @@ addressRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   StateController.store
 );
@@ -64,7 +64,7 @@ addressRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   StateController.update
 );
@@ -76,7 +76,7 @@ addressRoutes.delete(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   StateController.destroy
 );
@@ -94,7 +94,7 @@ addressRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   CityController.store
 );
@@ -106,7 +106,7 @@ addressRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   CityController.update
 );
@@ -118,7 +118,7 @@ addressRoutes.delete(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   CityController.destroy
 );

@@ -13,7 +13,7 @@ roleRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "STATE HEAD",
     "MASTER DISTRIBUTOR",
     "DISTRIBUTOR",
@@ -30,12 +30,12 @@ roleRoutes.get(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   RoleController.getAllRoles
 );
 
-//  CREATE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITE LABEL", can create employee roles)
+//  CREATE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITELABEL", can create employee roles)
 roleRoutes.post(
   "/",
   AuthMiddleware.isAuthenticated,
@@ -43,13 +43,13 @@ roleRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(RoleValidationSchemas.createRole),
   RoleController.createRole
 );
 
-//  UPDATE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITE LABEL", can update employee roles)
+//  UPDATE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITELABEL", can update employee roles)
 roleRoutes.put(
   "/:id",
   AuthMiddleware.isAuthenticated,
@@ -57,13 +57,13 @@ roleRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(RoleValidationSchemas.updateRole),
   RoleController.updateRole
 );
 
-//  DELETE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITE LABEL", can delete employee roles)
+//  DELETE EMPLOYEE ROLE (Only "AZZUNIQUE", "RESELLER",  "WHITELABEL", can delete employee roles)
 roleRoutes.delete(
   "/:id",
   AuthMiddleware.isAuthenticated,
@@ -71,7 +71,7 @@ roleRoutes.delete(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   RoleController.deleteRole
 );

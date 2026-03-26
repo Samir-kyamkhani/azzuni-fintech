@@ -13,7 +13,7 @@ const permissionRoutes = Router();
 permissionRoutes.post(
   "/role-upsert",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITELABEL"]),
   validateRequest(PermissionValidationSchemas.createOrUpdateRolePermission),
   RolePermissionController.createOrUpdate
 );
@@ -21,14 +21,14 @@ permissionRoutes.post(
 permissionRoutes.get(
   "/role-permission/:id",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITELABEL"]),
   RolePermissionController.getByRole
 );
 
 permissionRoutes.delete(
   "/role-permission/:roleId/:serviceId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITELABEL"]),
   validateRequest(PermissionValidationSchemas.deleteRolePermission),
   RolePermissionController.delete
 );
@@ -40,7 +40,7 @@ permissionRoutes.post(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   validateRequest(PermissionValidationSchemas.createOrUpdateUserPermission),
@@ -53,7 +53,7 @@ permissionRoutes.get(
   AuthMiddleware.authorize([
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
     "employee",
   ]),
   UserPermissionController.getByUser
@@ -62,7 +62,7 @@ permissionRoutes.get(
 permissionRoutes.delete(
   "/user-permission/:userId/:serviceId",
   AuthMiddleware.isAuthenticated,
-  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITE LABEL"]),
+  AuthMiddleware.authorize(["AZZUNIQUE", "RESELLER", "WHITELABEL"]),
   validateRequest(PermissionValidationSchemas.deleteUserPermission),
   UserPermissionController.delete
 );

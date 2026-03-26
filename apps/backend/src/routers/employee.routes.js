@@ -15,7 +15,7 @@ employeeRoutes.get(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   EmployeeController.getAllEmployeesByParentId
 );
@@ -28,7 +28,7 @@ employeeRoutes.get(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   EmployeeController.getEmployeeById
 );
@@ -42,7 +42,7 @@ employeeRoutes.post(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.register),
   EmployeeController.register
@@ -56,7 +56,7 @@ employeeRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.updatePermissions),
   EmployeeController.updatePermissions
@@ -70,7 +70,7 @@ employeeRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.updateProfile),
   EmployeeController.updateProfile
@@ -84,7 +84,7 @@ employeeRoutes.put(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   upload.single("profileImage"),
   validateRequest(EmployeeValidationSchemas.updateProfileImage),
@@ -99,7 +99,7 @@ employeeRoutes.get(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   EmployeeController.getPermissions
 );
@@ -112,7 +112,7 @@ employeeRoutes.patch(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.deactivateEmployee),
   EmployeeController.deactivateEmployee
@@ -126,7 +126,7 @@ employeeRoutes.patch(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.reactivateEmployee),
   EmployeeController.reactivateEmployee
@@ -140,7 +140,7 @@ employeeRoutes.delete(
     "employee",
     "AZZUNIQUE",
     "RESELLER",
-    "WHITE LABEL",
+    "WHITELABEL",
   ]),
   validateRequest(EmployeeValidationSchemas.deleteEmployee),
   EmployeeController.deleteEmployee
