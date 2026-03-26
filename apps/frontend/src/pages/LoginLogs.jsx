@@ -48,7 +48,7 @@ const LoginLogs = () => {
   const { currentUser } = useSelector((state) => state.auth);
 
   const isAdmin = useMemo(
-    () => currentUser.role?.name === "ADMIN",
+    () => currentUser.role?.name === "AZZUNIQUE",
     [currentUser]
   );
   const pagination = logsList?.metadata?.pagination;
