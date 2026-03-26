@@ -62,7 +62,9 @@ const Sidebar = () => {
           path: "/users",
           employeePermission: PERMISSIONS.USERS,
           staticRoles: [
-            "ADMIN",
+            "AZZUNIQUE",
+            "RESELLER",
+            "WHITE LABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -97,7 +99,9 @@ const Sidebar = () => {
           businessUserPermission: fundRequestPermissions.canView,
           employeePermission: PERMISSIONS.FUND_REQUEST,
           staticRoles: [
-            "ADMIN",
+            "AZZUNIQUE",
+            "RESELLER",
+            "WHITE LABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -130,7 +134,9 @@ const Sidebar = () => {
           path: "/kyc-request",
           employeePermission: PERMISSIONS.KYC_REQUEST,
           staticRoles: [
-            "ADMIN",
+            "AZZUNIQUE",
+            "RESELLER",
+            "WHITE LABEL",
             "STATE HEAD",
             "MASTER DISTRIBUTOR",
             "DISTRIBUTOR",
@@ -142,7 +148,7 @@ const Sidebar = () => {
           icon: Users,
           path: "/employee-management",
           employeePermission: PERMISSIONS.EMPLOYEE_MANAGEMENT,
-          staticRoles: ["ADMIN"],
+          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITE LABEL"],
         },
         {
           id: "ledger",
@@ -150,7 +156,7 @@ const Sidebar = () => {
           icon: BarChart3,
           path: "/ledger",
           employeePermission: PERMISSIONS.LEDGER,
-          staticRoles: ["ADMIN"],
+          staticRoles: ["AZZUNIQUE", "RESELLER", "WHITE LABEL"],
         },
         {
           id: "logs",
@@ -268,7 +274,8 @@ const Sidebar = () => {
   const getWallet = (type) => wallets.find((w) => w.walletType === type);
 
   // role based wallets
-  const isAdmin = role === "ADMIN";
+  const isAdmin = role === "AZZUNIQUE" || "RESELLER" || "WHITE LABEL";
+  const isAzzunique = role === "AZZUNIQUE";
 
   const primaryWallet = getWallet("PRIMARY");
   const commissionWallet = getWallet("COMMISSION");
@@ -379,7 +386,7 @@ const Sidebar = () => {
               </div>
 
               {/* USER VIEW */}
-              {!isAdmin && (
+              {!isAzzunique && (
                 <>
                   {/* PRIMARY */}
                   <div className="flex flex-col text-xs">

@@ -22,7 +22,7 @@ const Settings = () => {
   const userType = currentUser?.role?.type || "business";
 
   const isEmployee = userType === "employee";
-  const isAdmin = userRole === BUSINESS_ROLES.ADMIN;
+  const isAdmin = userRole === BUSINESS_ROLES.AZZUNIQUE;
 
   const employeePermissions = currentUser?.permissions || [];
 
@@ -33,7 +33,7 @@ const Settings = () => {
       label: "General Settings",
       icon: SettingsIcon,
       component: <MainSettings />,
-      showToRoles: [BUSINESS_ROLES.ADMIN],
+      showToRoles: [BUSINESS_ROLES.AZZUNIQUE],
       employeePermission: PERMISSIONS.GENERAL_SETTINGS,
     },
     {
@@ -42,7 +42,7 @@ const Settings = () => {
       icon: CreditCard,
       component: <CompanyAccounts />,
       showToRoles: [
-        BUSINESS_ROLES.ADMIN,
+        BUSINESS_ROLES.AZZUNIQUE,
         BUSINESS_ROLES.STATE_HEAD,
         BUSINESS_ROLES.MASTER_DISTRIBUTOR,
         BUSINESS_ROLES.DISTRIBUTOR,
@@ -55,7 +55,7 @@ const Settings = () => {
     //   label: "Services",
     //   icon: UserCog,
     //   component: <ManageServices />,
-    //   showToRoles: [BUSINESS_ROLES.ADMIN],
+    //   showToRoles: [BUSINESS_ROLES.AZZUNIQUE],
     //   employeePermission: PERMISSIONS.MANAGE_SERVICES,
     // },
     {
@@ -63,7 +63,7 @@ const Settings = () => {
       label: "Roles Management",
       icon: UserCog,
       component: <RoleManager />,
-      showToRoles: [BUSINESS_ROLES.ADMIN],
+      showToRoles: [BUSINESS_ROLES.AZZUNIQUE],
       employeePermission: PERMISSIONS.ROLE_MANAGEMENT,
     },
     {
@@ -71,7 +71,7 @@ const Settings = () => {
       label: "API Integration",
       icon: Cpu,
       component: <ApiIntegration />,
-      showToRoles: [BUSINESS_ROLES.ADMIN],
+      showToRoles: [BUSINESS_ROLES.AZZUNIQUE],
     },
   ];
 

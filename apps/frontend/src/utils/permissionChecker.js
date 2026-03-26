@@ -5,7 +5,7 @@ export const checkPermission = (user, permission, action = "view") => {
   const roleName = user?.role?.name || user?.role;
 
   // ADMIN bypass
-  if (roleName === "ADMIN") return true;
+  if (roleName === "AZZUNIQUE") return true;
 
   // EMPLOYEE PERMISSIONS
   if (roleType === "employee") {
